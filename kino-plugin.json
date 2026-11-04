@@ -1,7 +1,7 @@
 {
   "id": "retrotv",
   "name": "RetroTV",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Catálogo de series clásicas de FrikiSeries y Series Retro, con reproducción dentro de Kino.",
