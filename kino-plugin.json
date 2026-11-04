@@ -1,8 +1,9 @@
 {
   "id": "retrotv",
   "name": "RetroTV",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "apiVersion": 6,
+  "entry": "plugin.js",
   "description": "Series clásicas de FrikiSeries y Series Retro.",
   "author": "Moonspell075",
   "icon": "icon.png",
