@@ -1,7 +1,7 @@
 {
   "id": "retrotv",
   "name": "RetroTV",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Series clásicas de FrikiSeries y Series Retro.",
@@ -14,9 +14,9 @@
     "browser.capture"
   ],
   "hosts": [
-    "*.frikiserie.com",
+    "www.frikiserie.com",
     "frikiserie.com",
-    "*.seriesretro.com",
+    "www.seriesretro.com",
     "seriesretro.com"
   ]
 }
