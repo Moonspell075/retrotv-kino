@@ -8,9 +8,9 @@
   "author": "Moonspell075",
   "icon": "icon.png",
   "hosts": [
-    "https://www.frikiserie.com/*",
-    "https://frikiserie.com/*",
-    "https://seriesretro.com/*",
-    "https://www.seriesretro.com/*"
+    "www.frikiserie.com/*",
+    "frikiserie.com/*",
+    "seriesretro.com/*",
+    "www.seriesretro.com/*"
   ]
 }
