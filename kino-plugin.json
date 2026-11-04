@@ -7,6 +7,10 @@
   "description": "Series clásicas de FrikiSeries y Series Retro.",
   "author": "Moonspell075",
   "icon": "icon.png",
+  "capabilities": [
+    "catalog",
+    "series"
+  ],
   "hosts": [
     "www.frikiserie.com",
     "frikiserie.com",
