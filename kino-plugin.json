@@ -13,9 +13,9 @@
     "streams"
   ],
   "hosts": [
-    "https://www.frikiserie.com/*",
-    "https://frikiserie.com/*",
-    "https://seriesretro.com/*",
-    "https://www.seriesretro.com/*"
+    "https://www.frikiserie.com",
+    "https://frikiserie.com",
+    "https://seriesretro.com",
+    "https://www.seriesretro.com"
   ]
 }
