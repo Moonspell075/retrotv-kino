@@ -1,22 +1,20 @@
 {
   "id": "retrotv",
   "name": "RetroTV",
-  "version": "1.0.8",
+  "version": "1.0.9",
   "apiVersion": 6,
   "entry": "plugin.js",
   "description": "Series clásicas de FrikiSeries y Series Retro.",
   "author": "Moonspell075",
   "icon": "icon.png",
   "capabilities": [
-    "catalog",
-    "search",
-    "series",
-    "browser.capture"
+    "browser",
+    "fetch"
   ],
   "hosts": [
-    "www.frikiserie.com",
     "frikiserie.com",
-    "www.seriesretro.com",
-    "seriesretro.com"
+    "www.frikiserie.com",
+    "seriesretro.com",
+    "www.seriesretro.com"
   ]
 }
