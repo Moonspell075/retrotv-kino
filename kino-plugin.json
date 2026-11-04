@@ -1,22 +1,15 @@
 {
   "id": "retrotv",
   "name": "RetroTV",
-  "version": "0.1.3",
+  "version": "1.0.4",
   "apiVersion": 6,
-  "entry": "plugin.js",
-  "description": "Catálogo de series clásicas de FrikiSeries y Series Retro, con reproducción dentro de Kino.",
+  "description": "Series clásicas de FrikiSeries y Series Retro.",
   "author": "Moonspell075",
-  "homepage": "https://github.com/Moonspell075/retrotv-kino",
-  "hosts": [
-    "frikiserie.com",
-    "www.frikiserie.com",
-    "seriesretro.com",
-    "www.seriesretro.com"
-  ],
-  "fetchHosts": "any",
-  "streamHosts": "any",
-  "browser": "pages",
-  "capabilities": ["search", "home", "browse", "episodes", "resolve"],
-  "categories": ["series", "anime"],
-  "color": "#7652C8"
+  "icon": "icon.png",
+  "capabilities": [
+    "catalog",
+    "search",
+    "series",
+    "browser.capture"
+  ]
 }
