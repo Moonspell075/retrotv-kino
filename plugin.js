@@ -116,7 +116,7 @@ export async function search(query) {
   if(!q) return [];
   const enc=encodeURIComponent(q);
   const r=await Promise.all([
-    friki(FR+"/series/?s="+enc).catch(e=>{log("Friki search",e.code||e.message);return[]}),
+    friki(FR+"/buscar/?q="+enc).catch(e=>{log("Friki search",e.code||e.message);return[]}),
     retro(SR+"/?s="+enc).catch(e=>{log("Series Retro search",e.code||e.message);return[]})
   ]);
   const all=unique(r.flat()), terms=q.toLowerCase().split(/\s+/);
