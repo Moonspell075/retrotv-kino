@@ -69,7 +69,7 @@ function cards(html,base,source,requested) {
 function unique(xs) { const s=new Set(); return (xs||[]).filter(x=>x&&!s.has(x.id)&&s.add(x.id)); }
 function baseUrl(source,kind) {
   if(source==="F") return FR+(kind==="movie"?"/peliculas/":"/series/");
-  return SR+(kind==="movie"?"/peliculas/":"/series/");
+  return SR+(kind==="movie"?"/todas-las-peliculas/":"/");
 }
 function pageUrl(source,kind,n,categoryUrl) {
   const base=categoryUrl||baseUrl(source,kind);
