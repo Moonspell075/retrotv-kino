@@ -1,4 +1,4 @@
-// RetroTV 1.3.5 — Kino API v6
+// RetroTV 1.3.7 — Kino API v6
 // Catálogo separado por fuente y tipo. Paginación progresiva y episodios agrupados por temporada.
 // La reproducción solo usa medios compatibles que Kino pueda detectar sin eludir controles de acceso.
 
@@ -149,7 +149,10 @@ export async function search(query) {
     ["S","series",SR+"/?s="+enc],["S","movie",SR+"/?s="+enc]
   ];
   const lists=await Promise.all(defs.map(async d=>{
-    const h=await page(d[2],/<a\b|<article\b/i);
+    const contentLink=d[0]==="F"
+      ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-(?:serie|pelicula)\//i
+      : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
+    const h=await page(d[2],contentLink);
     return cards(h,d[0]==="F"?FR:SR,d[0],d[1]);
   }));
   const terms=q.toLowerCase().split(/\s+/).filter(Boolean);
