@@ -1,4 +1,4 @@
-// RetroTV 1.3.9 — Kino API v6
+// RetroTV 1.4.0 — Kino API v6
 // Catálogo separado por fuente y tipo. Paginación progresiva y episodios agrupados por temporada.
 // La reproducción solo usa medios compatibles que Kino pueda detectar sin eludir controles de acceso.
 
