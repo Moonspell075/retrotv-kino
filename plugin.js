@@ -74,7 +74,7 @@ function cards(html,base,source,requested) {
 }
 function unique(xs) { const s=new Set(); return (xs||[]).filter(x=>x&&!s.has(x.id)&&s.add(x.id)); }
 function baseUrl(source,kind) {
-  if(source==="F") return FR+(kind==="movie"?"/peliculas/":"/series/");
+  if(source==="F") return FR+(kind==="movie"?"/peliculas/":"/");
   return SR+(kind==="movie"?"/todas-las-peliculas/":"/");
 }
 function pageUrl(source,kind,n,categoryUrl) {
@@ -86,8 +86,8 @@ function pageUrl(source,kind,n,categoryUrl) {
 async function listPage(source,kind,n,categoryUrl) {
   const u=pageUrl(source,kind,n,categoryUrl);
   const contentLink=source==="F"
-    ? /(?:href|data-href)\\s*=\\s*["'][^"']*\\/ver-(?:serie|pelicula)\\//i
-    : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/(?:serie|movie)\\//i;
+    ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-(?:serie|pelicula)\//i
+    : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
   const h=await page(u,contentLink);
   return {items:unique(cards(h,source==="F"?FR:SR,source,kind)),url:u};
 }
@@ -162,20 +162,20 @@ function seriesInfo(html,base) {
   return {title:h?plain(h[1]):"Serie",poster:im?abs(base,decode(im[1])):undefined,overview:d?plain(d[1]):undefined};
 }
 function episodeList(html,base,source,seriesUrl) {
-  const out=[],seen=new Set(),re=/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi;
+  const out=[],seen=new Set(),re=/<a\b([^>]*)>([\s\S]*?)<\/a>/gi;
   const sourceHtml=String(html||""); let m,season=1;
-  const marks=[...sourceHtml.matchAll(/(?:temporada|season)\\s*(\\d{1,2})/gi)];
+  const marks=[...sourceHtml.matchAll(/(?:temporada|season)\s*(\d{1,2})/gi)];
   while((m=re.exec(sourceHtml))) {
     const a=attrs(m[1]),u=abs(base,a.href||a["data-href"]);
-    if(!u||u.replace(/\\/$/,"")===seriesUrl.replace(/\\/$/,"")||seen.has(u)) continue;
+    if(!u||u.replace(/\/$/,"")===seriesUrl.replace(/\/$/,"")||seen.has(u)) continue;
     const title=plain(m[2])||a.title||a["aria-label"]||"";
     const path=(()=>{try{return new URL(u).pathname;}catch(_){return "";}})();
     const ctx=sourceHtml.slice(Math.max(0,m.index-240),Math.min(sourceHtml.length,re.lastIndex+100));
     const combo=title+" "+path+" "+ctx;
-    const xmatch=/(?:^|[^\\d])(\\d{1,2})\\s*[x×]\\s*0*(\\d{1,3})(?:[^\\d]|$)/i.exec(combo);
-    const smatch=/(?:s|temporada|season)\\s*0*(\\d{1,2})\\s*(?:e|x|×)/i.exec(combo);
-    const ematch=/(?:episodio|cap[ií]tulo|episode|ep\\.?)[\\s._#:-]*0*(\\d{1,4})/i.exec(combo);
-    const explicitPath=/(?:\\/episodios?\\/|\\/capitulos?\\/|\\/episodes?\\/)/i.test(path);
+    const xmatch=/(?:^|[^\d])(\d{1,2})\s*[x×]\s*0*(\d{1,3})(?:[^\d]|$)/i.exec(combo);
+    const smatch=/(?:s|temporada|season)\s*0*(\d{1,2})\s*(?:e|x|×)/i.exec(combo);
+    const ematch=/(?:episodio|cap[ií]tulo|episode|ep\.?)[\s._#:-]*0*(\d{1,4})/i.exec(combo);
+    const explicitPath=/(?:\/episodios?\/|\/capitulos?\/|\/episodes?\/)/i.test(path);
     if(!xmatch&&!ematch&&!explicitPath) continue;
     let number=1;
     if(xmatch) { season=Math.max(1,Number(xmatch[1])); number=Math.max(1,Number(xmatch[2])); }
@@ -200,7 +200,7 @@ export async function resolve(ref) {
   const p=parseItem(ref); if(!p||!p.url||!["movie","ep"].includes(p.kind))
     throw kino.error("not_found","Referencia de reproducción inválida.");
   if(!kino.browser||!kino.browser.capture) throw kino.error("unavailable","Esta versión de Kino no ofrece captura de medios.");
-  const result=await kino.browser.capture(p.url,{timeoutMs:25000,match:"\\.m3u8|\\.mpd|\\.mp4"});
+  const result=await kino.browser.capture(p.url,{timeoutMs:25000,match:"\.m3u8|\.mpd|\.mp4"});
   const media=result&&Array.isArray(result.media)?result.media:[];
   if(!media.length) throw kino.error("unavailable","No se detectó un archivo de video compatible y accesible.");
   return {url:media[0].url,headers:media[0].headers,mime:media[0].mime,
