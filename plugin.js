@@ -1,4 +1,4 @@
-// RetroTV 1.3.7 — Kino API v6
+// RetroTV 1.3.8 — Kino API v6
 // Catálogo separado por fuente y tipo. Paginación progresiva y episodios agrupados por temporada.
 // La reproducción solo usa medios compatibles que Kino pueda detectar sin eludir controles de acceso.
 
@@ -26,23 +26,28 @@ function slug(s) {
   return String(s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"")
     .replace(/[^a-z0-9_-]+/g,"-").replace(/^-|-$/g,"").slice(0,100)||"item";
 }
-async function page(url, waitFor) {
+async function page(url, waitFor, forceBrowser) {
+  // FrikiSeries hidrata sus listados con JavaScript: en esas rutas el HTML inicial
+  // puede parecer válido aunque todavía no contenga tarjetas reales.
+  if(forceBrowser && kino.browser && kino.browser.page) {
+    try {
+      const p=await kino.browser.page(url,{timeoutMs:22000,waitFor:waitFor||undefined});
+      if(p&&p.html) return p.html;
+    } catch(e) { log("browser.page",url,e&&e.message); }
+  }
   try {
-    const r=await kino.fetch(url,{headers:{"User-Agent":"Mozilla/5.0","Accept":"text/html"},timeoutMs:10000});
+    const r=await kino.fetch(url,{headers:{"User-Agent":"Mozilla/5.0","Accept":"text/html"},timeoutMs:12000});
     if(r&&r.ok) {
       const h=typeof r.text==="function"?r.text():r.text;
-      // No aceptar el HTML inicial de una SPA solo porque contiene enlaces del menú.
-      if(h&&(!waitFor||waitFor.test(h))) return h;
+      if(h&&(!waitFor||new RegExp(waitFor.source||waitFor,"i").test(h))) return h;
     }
-  } catch(e) { log("fetch",e&&e.message); }
-  try {
-    if(kino.browser&&kino.browser.page) {
-      const p=await kino.browser.page(url,{timeoutMs:20000,waitFor:waitFor?waitFor.source:undefined});
-      const h=p&&p.html?p.html:"";
-      if(h&&(!waitFor||waitFor.test(h))) return h;
-      if(h) log("browser.page sin coincidencias de contenido",url);
-    }
-  } catch(e) { log("browser.page",e&&e.message); }
+  } catch(e) { log("fetch",url,e&&e.message); }
+  if(!forceBrowser && kino.browser && kino.browser.page) {
+    try {
+      const p=await kino.browser.page(url,{timeoutMs:20000,waitFor:waitFor||undefined});
+      if(p&&p.html) return p.html;
+    } catch(e) { log("browser.page",url,e&&e.message); }
+  }
   return "";
 }
 function itemKind(path, source, requested) {
@@ -88,8 +93,10 @@ async function listPage(source,kind,n,categoryUrl) {
   const contentLink=source==="F"
     ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-(?:serie|pelicula)\//i
     : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
-  const h=await page(u,contentLink);
-  return {items:unique(cards(h,source==="F"?FR:SR,source,kind)),url:u};
+  const h=await page(u,contentLink,source==="F");
+  const parsed=unique(cards(h,source==="F"?FR:SR,source,kind));
+  log("catalogo",source,kind,"pagina",n,"resultados",parsed.length,"url",u);
+  return {items:parsed,url:u};
 }
 function categoryRef(source,kind,url) { return "cat|"+source+"|"+kind+"|"+(url||""); }
 function parseCategory(ref) {
@@ -152,8 +159,10 @@ export async function search(query) {
     const contentLink=d[0]==="F"
       ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-(?:serie|pelicula)\//i
       : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
-    const h=await page(d[2],contentLink);
-    return cards(h,d[0]==="F"?FR:SR,d[0],d[1]);
+    const h=await page(d[2],contentLink,d[0]==="F");
+    const found=cards(h,d[0]==="F"?FR:SR,d[0],d[1]);
+    log("busqueda",d[0],d[1],"resultados",found.length);
+    return found;
   }));
   const terms=q.toLowerCase().split(/\s+/).filter(Boolean);
   return unique(lists.flat()).filter(x=>terms.every(t=>x.title.toLowerCase().includes(t))).slice(0,100);
@@ -195,7 +204,11 @@ function episodeList(html,base,source,seriesUrl) {
 }
 export async function episodes(ref) {
   const p=parseItem(ref); if(!p||p.kind!=="series") throw kino.error("not_found","La referencia no corresponde a una serie.");
-  const base=p.source==="F"?FR:SR, h=await page(p.url,/temporada|cap[ií]tulos|episodios|episode|<h1/i);
+  const base=p.source==="F"?FR:SR;
+  const episodeWait=p.source==="F"
+    ? /(?:ver[-_/]?(?:episodio|capitulo)|episodios?|cap[ií]tulos?|temporada|season|\\d{1,2}x\\d{1,3})/i
+    : /temporada|cap[ií]tulos|episodios|episode|<h1/i;
+  const h=await page(p.url,episodeWait,p.source==="F");
   if(!h) throw kino.error("unavailable","No se pudo cargar la ficha de la serie.");
   return {series:seriesInfo(h,base),episodes:episodeList(h,base,p.source,p.url)};
 }
