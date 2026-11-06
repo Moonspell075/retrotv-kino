@@ -61,8 +61,8 @@ function cards(html,base,source,requested) {
     const a=attrs(m[1]), href=abs(base,a.href||a["data-href"]);
     if(!href||seen.has(href)) continue;
     let path=""; try { path=new URL(href).pathname; } catch(_) {}
-    const frSeries=/\\/lista-series\\//i.test(path);
-    const frMovie=/\\/ver-serie\\//i.test(path);
+    const frSeries=/\/lista-series\//i.test(path);
+    const frMovie=/\/ver-serie\//i.test(path);
     const movie=source==="F"?(requested==="movie"&&frMovie):/pel[ií]cula|movie|film/i.test(path);
     const series=source==="F"?(requested==="series"&&frSeries):/serie|show|temporada/i.test(path);
     if(requested==="movie"&&!movie) continue;
@@ -94,9 +94,9 @@ async function listPage(source,kind,n,categoryUrl) {
   const u=pageUrl(source,kind,n,categoryUrl);
   const contentLink=source==="F"
     ? (kind==="movie"
-      ? /(?:href|data-href)\\s*=\\s*["'][^"']*\\/ver-serie\\//i
-      : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/lista-series\\//i)
-    : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/(?:serie|movie)\\//i;
+      ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-serie\//i
+      : /(?:href|data-href)\s*=\s*["'][^"']*\/lista-series\//i)
+    : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
   const h=await page(u,contentLink,source==="F");
   const parsed=unique(cards(h,source==="F"?FR:SR,source,kind));
   log("catalogo",source,kind,"pagina",n,"resultados",parsed.length,"url",u);
@@ -162,9 +162,9 @@ export async function search(query) {
   const lists=await Promise.all(defs.map(async d=>{
     const contentLink=d[0]==="F"
       ? (d[1]==="movie"
-        ? /(?:href|data-href)\\s*=\\s*["'][^"']*\\/ver-serie\\//i
-        : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/lista-series\\//i)
-      : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/(?:serie|movie)\\//i;
+        ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-serie\//i
+        : /(?:href|data-href)\s*=\s*["'][^"']*\/lista-series\//i)
+      : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
     const h=await page(d[2],contentLink,d[0]==="F");
     const found=cards(h,d[0]==="F"?FR:SR,d[0],d[1]);
     log("busqueda",d[0],d[1],"resultados",found.length);
