@@ -1,4 +1,4 @@
-// RetroTV 1.3.8 — Kino API v6
+// RetroTV 1.3.9 — Kino API v6
 // Catálogo separado por fuente y tipo. Paginación progresiva y episodios agrupados por temporada.
 // La reproducción solo usa medios compatibles que Kino pueda detectar sin eludir controles de acceso.
 
@@ -31,7 +31,7 @@ async function page(url, waitFor, forceBrowser) {
   // puede parecer válido aunque todavía no contenga tarjetas reales.
   if(forceBrowser && kino.browser && kino.browser.page) {
     try {
-      const p=await kino.browser.page(url,{timeoutMs:22000,waitFor:waitFor||undefined});
+      const p=await kino.browser.page(url,{timeoutMs:22000,waitFor:waitFor?(waitFor.source||String(waitFor)):undefined});
       if(p&&p.html) return p.html;
     } catch(e) { log("browser.page",url,e&&e.message); }
   }
@@ -61,10 +61,12 @@ function cards(html,base,source,requested) {
     const a=attrs(m[1]), href=abs(base,a.href||a["data-href"]);
     if(!href||seen.has(href)) continue;
     let path=""; try { path=new URL(href).pathname; } catch(_) {}
-    const movie=/pel[ií]cula|movie|film/i.test(path);
-    const series=/serie|show|temporada/i.test(path);
+    const frSeries=/\\/lista-series\\//i.test(path);
+    const frMovie=/\\/ver-serie\\//i.test(path);
+    const movie=source==="F"?(requested==="movie"&&frMovie):/pel[ií]cula|movie|film/i.test(path);
+    const series=source==="F"?(requested==="series"&&frSeries):/serie|show|temporada/i.test(path);
     if(requested==="movie"&&!movie) continue;
-    if(requested==="series"&&(!series||movie)) continue;
+    if(requested==="series"&&!series) continue;
     if(!requested&&!movie&&!series) continue;
     const im=/<img\b([^>]*)>/i.exec(m[2]), ia=im?attrs(im[1]):{};
     const poster=abs(base,ia.src||ia["data-src"]||ia["data-lazy-src"]||ia["data-original"]||"");
@@ -79,7 +81,7 @@ function cards(html,base,source,requested) {
 }
 function unique(xs) { const s=new Set(); return (xs||[]).filter(x=>x&&!s.has(x.id)&&s.add(x.id)); }
 function baseUrl(source,kind) {
-  if(source==="F") return FR+(kind==="movie"?"/peliculas/":"/");
+  if(source==="F") return FR+(kind==="movie"?"/peliculas/":"/series/");
   return SR+(kind==="movie"?"/todas-las-peliculas/":"/");
 }
 function pageUrl(source,kind,n,categoryUrl) {
@@ -91,8 +93,10 @@ function pageUrl(source,kind,n,categoryUrl) {
 async function listPage(source,kind,n,categoryUrl) {
   const u=pageUrl(source,kind,n,categoryUrl);
   const contentLink=source==="F"
-    ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-(?:serie|pelicula)\//i
-    : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
+    ? (kind==="movie"
+      ? /(?:href|data-href)\\s*=\\s*["'][^"']*\\/ver-serie\\//i
+      : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/lista-series\\//i)
+    : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/(?:serie|movie)\\//i;
   const h=await page(u,contentLink,source==="F");
   const parsed=unique(cards(h,source==="F"?FR:SR,source,kind));
   log("catalogo",source,kind,"pagina",n,"resultados",parsed.length,"url",u);
@@ -157,8 +161,10 @@ export async function search(query) {
   ];
   const lists=await Promise.all(defs.map(async d=>{
     const contentLink=d[0]==="F"
-      ? /(?:href|data-href)\s*=\s*["'][^"']*\/ver-(?:serie|pelicula)\//i
-      : /(?:href|data-href)\s*=\s*["'][^"']*\/(?:serie|movie)\//i;
+      ? (d[1]==="movie"
+        ? /(?:href|data-href)\\s*=\\s*["'][^"']*\\/ver-serie\\//i
+        : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/lista-series\\//i)
+      : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/(?:serie|movie)\\//i;
     const h=await page(d[2],contentLink,d[0]==="F");
     const found=cards(h,d[0]==="F"?FR:SR,d[0],d[1]);
     log("busqueda",d[0],d[1],"resultados",found.length);
