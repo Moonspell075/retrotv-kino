@@ -29,12 +29,18 @@ function slug(s) {
 async function page(url, waitFor) {
   try {
     const r=await kino.fetch(url,{headers:{"User-Agent":"Mozilla/5.0","Accept":"text/html"},timeoutMs:10000});
-    if(r&&r.ok) { const h=typeof r.text==="function"?r.text():r.text; if(h&&(!waitFor||waitFor.test(h))) return h; }
+    if(r&&r.ok) {
+      const h=typeof r.text==="function"?r.text():r.text;
+      // No aceptar el HTML inicial de una SPA solo porque contiene enlaces del menú.
+      if(h&&(!waitFor||waitFor.test(h))) return h;
+    }
   } catch(e) { log("fetch",e&&e.message); }
   try {
     if(kino.browser&&kino.browser.page) {
-      const p=await kino.browser.page(url,{timeoutMs:15000,waitFor:waitFor?waitFor.source:undefined});
-      return p&&p.html?p.html:"";
+      const p=await kino.browser.page(url,{timeoutMs:20000,waitFor:waitFor?waitFor.source:undefined});
+      const h=p&&p.html?p.html:"";
+      if(h&&(!waitFor||waitFor.test(h))) return h;
+      if(h) log("browser.page sin coincidencias de contenido",url);
     }
   } catch(e) { log("browser.page",e&&e.message); }
   return "";
@@ -79,7 +85,10 @@ function pageUrl(source,kind,n,categoryUrl) {
 }
 async function listPage(source,kind,n,categoryUrl) {
   const u=pageUrl(source,kind,n,categoryUrl);
-  const h=await page(u,/<a\b|<article\b/i);
+  const contentLink=source==="F"
+    ? /(?:href|data-href)\\s*=\\s*["'][^"']*\\/ver-(?:serie|pelicula)\\//i
+    : /(?:href|data-href)\\s*=\\s*["'][^"']*\\/(?:serie|movie)\\//i;
+  const h=await page(u,contentLink);
   return {items:unique(cards(h,source==="F"?FR:SR,source,kind)),url:u};
 }
 function categoryRef(source,kind,url) { return "cat|"+source+"|"+kind+"|"+(url||""); }
@@ -153,22 +162,30 @@ function seriesInfo(html,base) {
   return {title:h?plain(h[1]):"Serie",poster:im?abs(base,decode(im[1])):undefined,overview:d?plain(d[1]):undefined};
 }
 function episodeList(html,base,source,seriesUrl) {
-  const out=[],seen=new Set(),re=/<a\b([^>]*)>([\s\S]*?)<\/a>/gi; let m,season=1;
-  const marks=[...String(html||"").matchAll(/(?:temporada|season)\s*(\d{1,2})/gi)];
-  while((m=re.exec(html||""))) {
-    const a=attrs(m[1]),u=abs(base,a.href); if(!u||u.replace(/\/$/,"")===seriesUrl.replace(/\/$/,"")||seen.has(u)) continue;
-    const title=plain(m[2])||a.title||"", path=(()=>{try{return new URL(u).pathname;}catch(_){return "";}})();
-    const ctx=String(html||"").slice(Math.max(0,m.index-160),m.index);
+  const out=[],seen=new Set(),re=/<a\\b([^>]*)>([\\s\\S]*?)<\\/a>/gi;
+  const sourceHtml=String(html||""); let m,season=1;
+  const marks=[...sourceHtml.matchAll(/(?:temporada|season)\\s*(\\d{1,2})/gi)];
+  while((m=re.exec(sourceHtml))) {
+    const a=attrs(m[1]),u=abs(base,a.href||a["data-href"]);
+    if(!u||u.replace(/\\/$/,"")===seriesUrl.replace(/\\/$/,"")||seen.has(u)) continue;
+    const title=plain(m[2])||a.title||a["aria-label"]||"";
+    const path=(()=>{try{return new URL(u).pathname;}catch(_){return "";}})();
+    const ctx=sourceHtml.slice(Math.max(0,m.index-240),Math.min(sourceHtml.length,re.lastIndex+100));
     const combo=title+" "+path+" "+ctx;
-    const em=/(?:episodio|cap[ií]tulo|episode|ep\.?)[\s._-]*0*(\d{1,4})/i.exec(combo);
-    const sm=/(?:temporada|season)[\s._-]*0*(\d{1,2})/i.exec(combo);
-    if(!em) continue;
-    if(sm) season=Math.max(1,Number(sm[1]));
+    const xmatch=/(?:^|[^\\d])(\\d{1,2})\\s*[x×]\\s*0*(\\d{1,3})(?:[^\\d]|$)/i.exec(combo);
+    const smatch=/(?:s|temporada|season)\\s*0*(\\d{1,2})\\s*(?:e|x|×)/i.exec(combo);
+    const ematch=/(?:episodio|cap[ií]tulo|episode|ep\\.?)[\\s._#:-]*0*(\\d{1,4})/i.exec(combo);
+    const explicitPath=/(?:\\/episodios?\\/|\\/capitulos?\\/|\\/episodes?\\/)/i.test(path);
+    if(!xmatch&&!ematch&&!explicitPath) continue;
+    let number=1;
+    if(xmatch) { season=Math.max(1,Number(xmatch[1])); number=Math.max(1,Number(xmatch[2])); }
+    else if(ematch) number=Math.max(1,Number(ematch[1]));
+    if(smatch) season=Math.max(1,Number(smatch[1]));
     else {
       const prior=marks.filter(x=>x.index<m.index);
       if(prior.length) season=Math.max(1,Number(prior[prior.length-1][1]));
     }
-    const number=Math.max(1,Number(em[1])); seen.add(u);
+    seen.add(u);
     out.push({season,number,ref:source+"|ep|"+u,title:title.slice(0,180)||"Episodio "+number});
   }
   return out.sort((a,b)=>a.season-b.season||a.number-b.number);
